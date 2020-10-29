@@ -27,6 +27,7 @@ HANDMOD = \
 # Generated modules
 # generated directly from GHC/libraries/containers
 MODULES = \
+  Data/Sequence/Internal \
   Data/Set/Internal \
   Utils/Containers/Internal/BitUtil \
   Data/IntSet/Internal \

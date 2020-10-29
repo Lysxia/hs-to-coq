@@ -1,3 +1,14 @@
+Instance Unpeel__Elem a : GHC.Prim.Unpeel (Elem a) a :=
+  GHC.Prim.Build_Unpeel _ _ (fun x => match x with Mk_Elem y => y end) Mk_Elem.
+
+Instance Unpeel__ForceBox a : GHC.Prim.Unpeel (ForceBox a) a :=
+  GHC.Prim.Build_Unpeel _ _ (fun b => match b with Mk_ForceBox x => x end) Mk_ForceBox.
+
+Instance Unpeel__Seq a b `{GHC.Prim.Unpeel (FingerTree (Elem a)) (FingerTree b)} : GHC.Prim.Unpeel (Seq a) (FingerTree b) :=
+  GHC.Prim.Build_Unpeel _ _ (fun s => match s with Mk_Seq t => GHC.Prim.unpeel t end) (fun t => Mk_Seq (GHC.Prim.repeel t)).
+
+(*
+
 (*  ----------------------------------------------------------- *)
 
 Record Foldable1__Dict (t : Type -> Type) := Foldable1__Dict_Build {
@@ -25,23 +36,6 @@ Program Instance Foldable1_Digit : Foldable1 Digit := fun _ k =>
   k {| foldl1__ := fun {a} => Digit_foldl1 |}.
 
 (*  ----------------------------------------------------------- *)
-
-Instance Unpeel_Elem a : GHC.Prim.Unpeel (Elem a) a :=
-  GHC.Prim.Build_Unpeel _ _ (fun x => match x with Mk_Elem y => y end) Mk_Elem.
-
-(*  ----------------------------------------------------------- *)
-
-Notation "'_:<_'" := (op_ZCzl__).
-
-Infix ":<" := (_:<_) (at level 99).
-
-Notation "'_:>_'" := (op_ZCzg__).
-
-Infix ":>" := (_:>_) (at level 99).
-
-Notation "'_:&_'" := (op_ZCza__).
-
-Infix ":&" := (_:&_) (at level 99).
 
 
 (*  ----------------------------------------------------------- *)
@@ -249,3 +243,5 @@ Parameter cycleNMiddle : forall {c}, GHC.Num.Int -> Rigid c -> FingerTree (Node 
 Parameter initsTree : forall {a} {b} `{_:Sized a}, ((FingerTree a) -> b) -> (FingerTree a) -> FingerTree b.
 
 (* ----------------------------------------------- *)
+
+*)

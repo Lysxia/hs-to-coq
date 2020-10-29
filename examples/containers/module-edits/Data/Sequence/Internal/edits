@@ -1,0 +1,203 @@
+alias module Seq Data.Sequence.Internal
+
+skip module Utils.Containers.Internal.Coercions
+skip module Utils.Containers.Internal.State
+
+skip Seq.consConstr
+skip Seq.emptyConstr
+skip Seq.IsString__Seq
+
+rename value Seq.State  = Seq.Mk_State
+rename value Seq.Split  = Seq.Mk_Split
+rename value Seq.Place  = Seq.Mk_Place
+rename value Seq.PQueue = Seq.Mk_PQueue
+rename value Seq.Elem   = Seq.Mk_Elem
+rename value Seq.Rigid  = Seq.Mk_Rigid
+rename value Seq.Seq    = Seq.Mk_Seq
+
+rename value Seq.ForceBox = Seq.Mk_ForceBox
+rename value Seq.InsDigNode = Seq.Mk_InsDigNode
+rename value Seq.InsNodeDig = Seq.Mk_InsNodeDig
+rename value Utils.Containers.Internal.Coercions..# = GHC.Base.∘
+rewrite forall f g, f Utils.Containers.Internal.Coercions..^# g = (fun x y => f x (g y))
+
+add Seq Instance Seq.Unpeel__FingerTree a b `{GHC.Prim.Unpeel a b} : GHC.Prim.Unpeel (FingerTree a) (FingerTree b) :=
+  GHC.Prim.Build_Unpeel _ _ (GHC.Base.fmap GHC.Prim.unpeel) (GHC.Base.fmap GHC.Prim.repeel).
+
+order Seq.Functor__FingerTree Seq.Unpeel__FingerTree Seq.adjust'
+
+order Seq.Eq___Seq Seq.Eq___ViewL_op_zeze__
+order Seq.Ord__Seq Seq.Ord__ViewL_op_zl__
+order Seq.Ord__Seq Seq.Ord__ViewL_compare
+order Seq.Sized__Elem Seq.Sized__FingerTree Seq.length
+order Seq.Foldable__Node Seq.Foldable__Digit Seq.Foldable__FingerTree_foldMap
+order Seq.Foldable__FingerTree Seq.Foldable__Seq_foldMap
+order Seq.Foldable__Seq Seq.Eq___Seq_op_zeze__
+order Seq.Functor__Elem Seq.Functor__Node Seq.Functor__Digit Seq.Functor__FingerTree_fmap
+order Seq.Functor__FingerTree Seq.fmapSeq
+order Seq.Traversable__Node Seq.Traversable__Digit Seq.Traversable__FingerTree_traverse
+order Seq.Traversable__FingerTree Seq.Traversable__Seq_traverse
+order Seq.Applicative__Seq Seq.Monad__Seq_op_zgzg__
+order Seq.Sized__Elem Seq.Sized__Node Seq.Sized__Digit Seq.Sized__FingerTree Seq.deep
+
+order Seq.Functor__Node Seq.Traversable__Node
+order Seq.Functor__Digit Seq.Traversable__Digit
+order Seq.Foldable__Digit Seq.Traversable__Digit Seq.Sized__Digit_size
+
+in Seq.Foldable__FingerTree_foldMap polyrec foldMapTree
+in Seq.Foldable__FingerTree_foldl  polyrec foldlTree
+in Seq.Foldable__FingerTree_foldl' polyrec foldlTree'
+in Seq.Foldable__FingerTree_foldr  polyrec foldrTree
+in Seq.Foldable__FingerTree_foldr' polyrec foldrTree'
+
+in Seq.Traversable__Seq_traverse polyrec traverseTree
+
+# TODO: Don't let hs-to-coq rewrite the recursive call to compare
+redefine Definition Seq.Ord__ViewL_op_zl__ {inst_a} `{GHC.Base.Ord inst_a} : ViewL inst_a -> (ViewL inst_a -> bool) :=
+  fun a b =>
+    match a with
+    | EmptyL => match b with | EmptyL => false | _ => true end
+    | op_ZCzl__ a1 a2 =>
+        match b with
+        | op_ZCzl__ b1 b2 =>
+            match (GHC.Base.compare a1 b1) with
+            | Lt => true
+            | Eq => (a2 GHC.Base.< b2)
+            | Gt => false
+            end
+        | _ => false
+        end
+    end.
+
+redefine Local Definition Seq.Ord__ViewR_op_zl__ {inst_a} `{GHC.Base.Ord inst_a}
+   : ViewR inst_a -> (ViewR inst_a -> bool) :=
+  fun a b =>
+    match a with
+    | EmptyR => match b with | EmptyR => false | _ => true end
+    | op_ZCzg__ a1 a2 =>
+        match b with
+        | op_ZCzg__ b1 b2 =>
+            match (GHC.Base.compare a1 b1) with
+            | Lt => true
+            | Eq => (a2 GHC.Base.< b2)
+            | Gt => false
+            end
+        | _ => false
+        end
+    end.
+
+redefine Local Definition Seq.Functor__FingerTree_fmap
+   : forall {a} {b}, (a -> b) -> (FingerTree a -> FingerTree b) :=
+  fix fmap_ {a} {b} arg_0__ arg_1__ {struct arg_1__} :=
+      match arg_0__, arg_1__ with
+      | _, EmptyT => EmptyT
+      | f, Single x => Single (f x)
+      | f, Deep v pr m sf =>
+          Deep v (GHC.Base.fmap f pr) (fmap_ (GHC.Base.fmap f) m) (GHC.Base.fmap f
+                                                                           sf)
+      end.
+
+redefine Local Definition Seq.Traversable__FingerTree_traverse
+   : forall {f} {a} {b},
+     forall `{GHC.Base.Applicative f},
+     (a -> f b) -> (FingerTree a -> f (FingerTree b)) :=
+  fix traverse_ {f} {a} {b} `{GHC.Base.Applicative f}
+    arg_0__ arg_1__ :=
+      match arg_0__, arg_1__ with
+      | _, EmptyT => GHC.Base.pure EmptyT
+      | f, Single x => Single Data.Functor.<$> f x
+      | f, Deep v pr m sf =>
+          GHC.Base.liftA3 (Deep v) (Data.Traversable.traverse f pr)
+          (traverse_ (Data.Traversable.traverse f) m)
+          (Data.Traversable.traverse f sf)
+      end.
+
+# TODO: Avoid using foldl1
+redefine Local Definition Seq.Sized__Digit_size {inst_a} `{Sized inst_a}
+   : (Digit inst_a) -> GHC.Num.Int :=
+  Data.Foldable.sum GHC.Base.∘ GHC.Base.fmap size.
+
+# TODO: Well-founded recursion on size
+redefine Axiom Seq.thin : forall {a} `{Sized a}, FingerTree a -> Thin a.
+
+polyrec Seq.viewRTree
+inline mutual Seq.viewRTree
+
+polyrec Seq.viewLTree
+inline mutual Seq.viewLTree
+
+redefine Axiom Seq.replicateA : forall {f} {a} `{GHC.Base.Applicative f}, GHC.Num.Int -> f a -> f (Seq a).
+redefine Axiom Seq.replicate : forall {a}, GHC.Num.Int -> a -> Seq a.
+
+redefine Local Definition Seq.Functor__Seq_op_zlzd__ : forall {a} {b}, a -> (Seq b -> Seq a) :=
+  fun {a} {b} x s => Seq.Functor__Seq_fmap (fun _ => x) s.
+redefine Axiom Seq.applicativeTree : forall {f} {a} `{GHC.Base.Applicative f} (n mSize : GHC.Num.Int) (m : f a), f (FingerTree a).
+
+redefine Axiom Seq.aptyMiddle : forall {b} {c} {a} (arg_0__ arg_1__ : (b -> c)) (arg_2__ : (a -> (b -> c))) (arg_3__ : FingerTree (Elem a)) (arg_4__ : Rigid b), FingerTree (Node c).
+redefine Axiom Seq.cycleNMiddle : forall {c} (arg_0__ : GHC.Num.Int) (arg_1__ : Rigid c), FingerTree (Node c).
+
+polyrec Seq.appendTree2
+inline mutual Seq.addDigits0
+inline mutual Seq.addDigits1
+inline mutual Seq.addDigits2
+inline mutual Seq.addDigits3
+inline mutual Seq.addDigits4
+
+order Seq.Semigroup__Seq Seq.Monoid__Seq
+
+order Seq.UnzipWith__Digit Seq.UnzipWith__Node Seq.UnzipWith__Elem Seq.UnzipWith__FingerTree_unzipWith' Seq.UnzipWith__FingerTree Seq.UnzipWith__Seq_unzipWith'
+order Seq.UnzipWith__Seq Seq.unzipWith
+
+redefine Fixpoint Seq.UnzipWith__FingerTree_unzipWith'
+  {x a b} (arg_0__ : x -> a * b) (arg_1__ : FingerTree x) : (FingerTree a * FingerTree b) :=
+    match arg_0__, arg_1__ with
+    | _, EmptyT => pair EmptyT EmptyT
+    | f, Single x => match f x with | pair x1 x2 => pair (Single x1) (Single x2) end
+    | f, Deep s pr m sf =>
+        let m1m2 := strictifyPair (Seq.UnzipWith__FingerTree_unzipWith' (unzipWith' f) m) in
+        match m1m2 with | pair m1 m2 =>
+        match unzipWith' f pr with | pair pr1 pr2 =>
+        match unzipWith' f sf with | pair sf1 sf2 =>
+        pair (Deep s pr1 m1 sf1) (Deep s pr2 m2 sf2)
+        end end end
+    end.
+
+in Seq.splitMap          polyrec     splitMapTreeN
+in Seq.mapWithIndex      polyrec     mapWithIndexTree
+in Seq.mapWithIndex      termination mapWithIndexTree {struct 3}
+in Seq.foldMapWithIndex  polyrec     foldMapWithIndexTreeN
+in Seq.foldMapWithIndex  termination foldMapWithIndexTreeN {struct 3}
+in Seq.traverseWithIndex polyrec     traverseWithIndexTreeN
+in Seq.traverseWithIndex termination traverseWithIndexTreeN {struct 3}
+
+redefine Axiom Seq.splitTreeN : forall {a} (arg_0__ : GHC.Num.Int) (arg_1__ : FingerTree (Node a)), Split a.
+redefine Axiom Seq.zipWith' : forall {a} {b} {c}, (a -> b -> c) -> Seq a -> Seq b -> Seq c.
+redefine Axiom Seq.fromFunction : forall {a}, GHC.Num.Int -> (GHC.Num.Int -> a) -> Seq a.
+redefine Axiom Seq.lookupTree : forall {a} `{Sized a} (arg_0__ : GHC.Num.Int) (arg_1__ : FingerTree a), Place a.
+
+skip Seq.index
+skip Seq.mfixSeq
+skip Seq.seqDataType
+skip Seq.unfoldr
+skip Seq.unfoldl
+skip Seq.iterateN
+skip Seq.scanl1
+skip Seq.scanr1
+
+skip Seq.fromArray
+
+# TODO: This is unsound
+redefine Axiom Seq.takeTreeN : forall {a} (arg_0__ : GHC.Num.Int) (arg_1__ : FingerTree (Node a)), prod (FingerTree (Node a)) (Node a).
+skip Seq.takeTreeNR
+skip Seq.takeTreeER
+skip Seq.drop
+skip Seq.chunksOf
+
+# incomplete patterns
+skip Seq.tailsTree
+skip Seq.tails
+skip Seq.initsTree
+skip Seq.inits
+
+skip Seq.fromList
+skip Seq.fromList2
