@@ -1,3 +1,10 @@
+From Coq Require Import Arith.
+Require Import Coq.Classes.Morphisms. (* For [Proper] *)
+
+Ltac SolveObligations_aptyMiddle :=
+  try solve [apply Wf.measure_wf, lt_wf | intros; subst; cbn; apply Nat.lt_succ_diag_r].
+Obligation Tactic := SolveObligations_aptyMiddle.
+
 Instance Unpeel__Elem a : GHC.Prim.Unpeel (Elem a) a :=
   GHC.Prim.Build_Unpeel _ _ (fun x => match x with Mk_Elem y => y end) Mk_Elem.
 
@@ -6,6 +13,39 @@ Instance Unpeel__ForceBox a : GHC.Prim.Unpeel (ForceBox a) a :=
 
 Instance Unpeel__Seq a b `{GHC.Prim.Unpeel (FingerTree (Elem a)) (FingerTree b)} : GHC.Prim.Unpeel (Seq a) (FingerTree b) :=
   GHC.Prim.Build_Unpeel _ _ (fun s => match s with Mk_Seq t => GHC.Prim.unpeel t end) (fun t => Mk_Seq (GHC.Prim.repeel t)).
+
+Fixpoint depth_Thin {A} (t0 : Thin A) : nat :=
+  match t0 with
+  | EmptyTh | SingleTh _ => 0
+  | DeepTh _ _ t _ => S (depth_Thin t)
+  end.
+
+Fixpoint depth_Rigid {A} (t0 : Rigid A) : nat :=
+  match t0 with
+  | Mk_Rigid _ _ t _ => depth_Thin t
+  end.
+
+Definition pseudosize_Digit {A} (d : Digit A) : nat :=
+  match d with
+  | One _ => 1
+  | Two _ _ => 2
+  | Three _ _ _ => 3
+  | Four _ _ _ _ => 4
+  end.
+
+Fixpoint pseudosize_FT {A} (t : FingerTree A) : nat :=
+  match t with
+  | EmptyT => 0
+  | Single _ => 1
+  | Deep _ pr t sf => pseudosize_Digit pr + pseudosize_FT t + pseudosize_Digit sf
+  end.
+
+Instance Proper_S : Proper (le ==> le) S.
+Admitted.
+
+Instance Proper_plus : Proper (le ==> le ==> le) plus.
+Admitted.
+
 
 (*
 

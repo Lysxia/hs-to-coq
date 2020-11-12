@@ -118,7 +118,29 @@ redefine Local Definition Seq.Sized__Digit_size {inst_a} `{Sized inst_a}
   Data.Foldable.sum GHC.Base.∘ GHC.Base.fmap size.
 
 # TODO: Well-founded recursion on size
+order Seq.consTree Seq.ps_cons Seq.thin
+add Seq Theorem Seq.ps_cons {A} `{Sized A} (a : A) (t : FingerTree A)
+  : le (pseudosize_FT (consTree a t)) (S (pseudosize_FT t)).
+Proof.
+  induction t; cbn; try reflexivity.
+  destruct d; cbn; try reflexivity.
+  rewrite IHt. do 2 apply le_S. reflexivity.
+Qed.
+
+order Seq.snocTree Seq.ps_snoc Seq.thin
+add Seq Theorem Seq.ps_snoc {A} `{Sized A} (t : FingerTree A) (a : A)
+  : le (pseudosize_FT (snocTree t a)) (S (pseudosize_FT t)).
+Proof.
+  induction t; cbn; try reflexivity.
+  destruct d0; cbn; rewrite ?(plus_comm _ (S _)); cbn; try reflexivity.
+  rewrite IHt. rewrite <- plus_n_Sm. do 2 apply le_S. reflexivity.
+Qed.
+
 redefine Axiom Seq.thin : forall {a} `{Sized a}, FingerTree a -> Thin a.
+# MUTUAL NONSTRUCTURAL RECURSION UNSUPPORTED
+# "let" IN PROGRAM IS NOT UNFOLDED :(
+# termination Seq.thin {measure (pseudosize_FT arg_1__)}
+inline mutual Seq.thin12
 
 polyrec Seq.viewRTree
 inline mutual Seq.viewRTree
@@ -133,7 +155,7 @@ redefine Local Definition Seq.Functor__Seq_op_zlzd__ : forall {a} {b}, a -> (Seq
   fun {a} {b} x s => Seq.Functor__Seq_fmap (fun _ => x) s.
 redefine Axiom Seq.applicativeTree : forall {f} {a} `{GHC.Base.Applicative f} (n mSize : GHC.Num.Int) (m : f a), f (FingerTree a).
 
-redefine Axiom Seq.aptyMiddle : forall {b} {c} {a} (arg_0__ arg_1__ : (b -> c)) (arg_2__ : (a -> (b -> c))) (arg_3__ : FingerTree (Elem a)) (arg_4__ : Rigid b), FingerTree (Node c).
+termination Seq.aptyMiddle {measure (depth_Rigid arg_4__)}
 redefine Axiom Seq.cycleNMiddle : forall {c} (arg_0__ : GHC.Num.Int) (arg_1__ : Rigid c), FingerTree (Node c).
 
 polyrec Seq.appendTree2
