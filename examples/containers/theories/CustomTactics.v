@@ -42,3 +42,31 @@ Ltac assert_new prop prf :=
 
 Ltac beassumption := multimatch goal with H :_ |- _ => exact H end.
 
+
+(* If [H] is in the context, [H : X -> Y -> Z], create one new goal for each
+   assumption [X], [Y], and continue with [H : Z]. *)
+Ltac prove_assumptions_of H :=
+  match type of H with
+  | (?Y -> ?Z) =>
+    let A := fresh "HH" in assert (A : Y); [ | specialize (H A); clear A; prove_assumptions_of H ]
+  | _ => idtac
+  end.
+
+Ltac splits :=
+  repeat
+    lazymatch goal with
+    | [ |- _ /\ _ ] => split
+    end.
+
+Ltac decompose_conj H :=
+  repeat
+    (hnf in H;
+    lazymatch type of H with
+    | (_ /\ _) =>
+      let H1 := fresh "H" in
+      let H2 := fresh "H" in
+      destruct H as [H1 H2];
+      tryif (try clear H; rename H2 into H)
+      then decompose_conj H
+      else decompose_conj H2
+    end).
