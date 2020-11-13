@@ -76,8 +76,8 @@ $(OUT)/_CoqProject : Makefile $(OUT)/README.md
 	echo $(addsuffix .v,$(SPECIAL_MODULES)) >> $@
 	echo $(addsuffix .v,$(DROPIN)) >> $@
 
-$(OUT)/Makefile: $(OUT)/_CoqProject $(VFILES) $(OUT)/README.md
-	cd $(OUT); coq_makefile -f _CoqProject -o Makefile
+$(OUT)/Makefile.coq: $(OUT)/_CoqProject $(VFILES) $(OUT)/README.md
+	cd $(OUT); coq_makefile -f _CoqProject -o Makefile.coq
 
 $(OUT)/edits: $(OUT)/README.md
 	ln -fs ../edits $(OUT)/edits
@@ -94,8 +94,8 @@ $(HS_SPEC)/README.md:
 	echo 'This directory contains a Coq’ified version of the Haskell containers library specification' >> $@
 	echo 'Do not edit files here! Instead, look in `examples/containers`.' >> $@
 
-coq: $(OUT)/Makefile $(VFILES)
-	$(MAKE) -C $(OUT) -f Makefile OPT=$(COQFLAGS)
+coq: $(OUT)/Makefile.coq $(VFILES)
+	$(MAKE) -C $(OUT) -f Makefile.coq OPT=$(COQFLAGS)
 
 HS_TO_COQ_OPTS := \
   -e ../../base/edits \
