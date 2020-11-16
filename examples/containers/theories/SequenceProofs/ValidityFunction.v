@@ -6,13 +6,11 @@ Require Import SequenceProofs.Sized.
 Require Import SequenceProofs.Validity.
 
 Ltac fold_classes :=
+  fold_sized;
+  fold_valid;
   repeat (change (@Internal.Functor__FingerTree_fmap) with (@fmap FingerTree _));
   repeat (change (@Internal.Functor__Digit_fmap) with (@fmap Digit _));
   repeat (change (@Internal.Functor__Node_fmap) with (@fmap Node _));
-  repeat (change (@Internal.Sized__FingerTree_size ?A _) with (@size (FingerTree A) _));
-  repeat (change (@Internal.Sized__Digit_size ?A _) with (@size (Digit A) _));
-  repeat (change (@Internal.Sized__Node_size ?A) with (@size (Node A) _));
-  repeat (change (@Internal.Sized__Elem_size ?A) with (@size (Elem A) _));
   repeat (change (@Internal.Foldable__Digit_sum ?A) with (@Foldable.sum Digit _ A));
   repeat (change (Foldable.sum (fmap size ?d)) with (size d)).
 

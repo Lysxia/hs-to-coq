@@ -85,12 +85,71 @@ Theorem valid_squashR {A} `{Sized A} `{Validity A} (ns : Digit12 (Node A)) (d : 
   : valid ns -> valid d -> valid (squashR ns d).
 Proof. destruct ns; cbn; firstorder lia. Qed.
 
+Lemma unfold_pullL {A} (s : Int) (m : FingerTree (Node A)) (d : Digit A)
+  : pullL s m d
+  = match viewLTree m with
+    | ConsLTree pr m' => Deep s (nodeToDigit pr) m' d
+    | EmptyLTree => digitToTree' s d
+    end.
+Proof.
+  destruct m; reflexivity.
+Qed.
+
+Lemma valid_digitToTree' {A} `{Sized A} `{Validity A} (s : Int) (d : Digit A)
+  : size d = s -> valid d -> valid (digitToTree' s d).
+Proof.
+  destruct d; cbn; intros ?; intros_valid; auto_valid; lia.
+Qed.
+
+Lemma size_digitToTree' {A} `{Sized A} (s : Int) (d : Digit A)
+  : size d = s -> size (digitToTree' s d) = s.
+Proof.
+  destruct d; cbn; lia.
+Qed.
+
+Theorem valid_viewLTree {A} `{Sized A} `{Validity A} (t : FingerTree A)
+  : valid t -> valid (viewLTree t) /\ size (viewLTree t) = size t.
+Proof.
+  induction t as [ | | A s d ]; cbn; fold_classes.
+  - auto.
+  - split; auto; lia.
+  - intros V; decompose_conj V.
+    specialize (IHt _ _ H3).
+    revert H1 H2; destruct d; cbn; fold_classes; do 2 intros_valid; auto_valid; auto.
+    1,2: rewrite ?unfold_pullL; destruct (viewLTree t); cbn in *; revert H1 IHt;
+      fold_classes; do 2 intros_valid; auto_valid.
+    1: rewrite size_nodeToDigit by auto.
+    2: apply valid_digitToTree'; auto; lia.
+    3: rewrite size_digitToTree' by lia.
+    all: lia.
+Qed.
+
+Theorem valid_viewRTree {A} `{Sized A} `{Validity A} (t : FingerTree A)
+  : valid t -> valid (viewRTree t) /\ size (viewRTree t) = size t.
+Proof.
+Admitted.
+
 Theorem valid_viewl {A} (t : Seq A) : valid t -> valid (viewl t).
+Proof.
+  destruct t as [t]; cbn.
+  intros Vt.
+  destruct (valid_viewLTree t Vt) as [VVt SVt].
+  destruct (viewLTree t) as [ [x] | ]; [ destruct VVt | ]; auto.
+Qed.
+
+Theorem size_viewl {A} (t : Seq A) : size (viewl t) = size t.
 Proof.
 Admitted.
 
 Theorem valid_viewr {A} (t : Seq A) : valid t -> valid (viewr t).
 Proof.
+  destruct t as [t]; cbn.
+  intros Vt.
+  destruct (valid_viewRTree t Vt) as [VVt SVt].
+  destruct (viewRTree t) as [ ? [x] | ]; [ destruct VVt | ]; auto.
+Qed.
+
+Theorem size_viewr {A} (t : Seq A) : size (viewr t) = size t.
 Admitted.
 
 Theorem valid_rigidify {A} (t : FingerTree (Elem A))
@@ -99,6 +158,19 @@ Proof.
   destruct t as [ | | s pr m sf ]; cbn; auto.
   intros_valid.
   destruct pr as [ a | a b | a b c | a b c d ].
+  - pose proof (valid_viewLTree m); destruct (viewLTree m) as [[] m' | ].
+    + admit.
+    + admit.
+    + destruct sf; cbn; auto.
+      (* m is empty *) admit. admit.
+  - admit.
+  - admit.
+  - admit.
+Admitted.
+
+Theorem size_rigidify {A} (t : FingerTree (Elem A))
+  : size (rigidify t) = size t.
+Proof.
 Admitted.
 
 Theorem valid_lift2FT {A B C} (f : A -> B -> C)
@@ -115,6 +187,12 @@ Proof.
   - apply valid_mapMulFT; auto.
 Qed.
 
+Theorem size_lift2FT {A B C} `{Sized B} (f : A -> B -> C)
+    (x : A) (xs : FingerTree (Elem A)) (x1 : A) (y1 y2 : B)
+  : size (lift2FT f x xs x1 (y1, y2)) = #2 + size xs + size y1 + size y2.
+Proof.
+Admitted.
+
 Theorem valid_lift3FT {A B C} (f : A -> B -> C)
     (x : A) (xs : FingerTree (Elem A)) (x1 : A) (y1 y2 y3 : B)
   : valid xs -> valid (lift3FT f x xs x1 (y1, y2, y3)).
@@ -128,3 +206,9 @@ Proof.
     cbn [op_zt__ Num_Integer__]. lia.
   - apply valid_mapMulFT; auto.
 Qed.
+
+Theorem size_lift3FT {A B C} `{Sized B} (f : A -> B -> C)
+    (x : A) (xs : FingerTree (Elem A)) (x1 : A) (y1 y2 y3 : B)
+  : size (lift3FT f x xs x1 (y1, y2, y3)) = #2 + size xs + size y1 + size y2 + size y3.
+Proof.
+Admitted.

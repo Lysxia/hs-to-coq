@@ -71,6 +71,20 @@ Instance Validity__Rigid {A} `{Sized A} `{Validity A} : Validity (Rigid A) :=
       s = size pr + size m + size sf /\ valid pr /\ valid m /\ valid sf
     end.
 
+Instance Validity__ViewLTree {A} `{Sized A} `{Validity A} : Validity (ViewLTree A) :=
+  fun v =>
+    match v with
+    | ConsLTree x xs => valid x /\ valid xs
+    | EmptyLTree => True
+    end.
+
+Instance Validity__ViewRTree {A} `{Sized A} `{Validity A} : Validity (ViewRTree A) :=
+  fun v =>
+    match v with
+    | SnocRTree xs x => valid xs /\ valid x
+    | EmptyRTree => True
+    end.
+
 Instance Validity__ViewL {A} : Validity (ViewL A) :=
   fun v =>
     match v with

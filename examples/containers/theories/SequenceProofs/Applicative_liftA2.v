@@ -30,12 +30,15 @@ Proof.
   cbv [liftA2 Applicative__Seq Data.Sequence.Internal.Applicative__Seq_liftA2 liftA2__ liftA2Seq].
   destruct tb as [tb].
   pose proof (valid_viewl ta Hta) as HtaL.
+  pose proof (size_viewl ta) as Sta.
   destruct (viewl ta) as [ | a ta' ]; [ constructor | ].
   pose proof (valid_viewr ta' HtaL) as HtaLR.
+  pose proof (size_viewr ta') as Sta'.
   destruct (viewr ta') as [ | ta'' a'].
   { apply valid_fmap__Seq; assumption. }
   destruct ta'' as [ta''].
   pose proof (valid_rigidify tb Htb) as Htbr.
+  pose proof (size_rigidify tb) as Stb.
   destruct (rigidify tb) as [ | [r1] | [r1] [r2] | [r1] [r2] [r3] | [s pr m sf] ].
   - constructor.
   - apply valid_fmap__Seq; auto.
@@ -44,10 +47,11 @@ Proof.
   - decompose_conj Htbr. cbn; auto_valid.
     + rewrite 2 size_fmap__Digit, 2 size_nodeToDigit; auto_valid.
       rewrite size_aptyMiddle; auto_valid.
-      * cbn; fold_classes. admit.
+      * revert Sta Sta' H; cbn - [Z.add]; fold_classes.
+        intros [] [] ->. lia.
       * cbn; fold_classes; auto.
     + fold_valid; apply valid_aptyMiddle; auto_valid.
       cbn; fold_classes; auto.
-Admitted.
+Qed.
 
 End liftA2.

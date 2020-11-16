@@ -67,6 +67,6 @@ Ltac decompose_conj H :=
       let H2 := fresh "H" in
       destruct H as [H1 H2];
       tryif (try clear H; rename H2 into H)
-      then decompose_conj H
-      else decompose_conj H2
+      then (decompose_conj H1; decompose_conj H)
+      else (decompose_conj H1; decompose_conj H2)
     end).

@@ -41,11 +41,10 @@ Fixpoint pseudosize_FT {A} (t : FingerTree A) : nat :=
   end.
 
 Instance Proper_S : Proper (le ==> le) S.
-Admitted.
+Proof. exact le_n_S. Qed.
 
 Instance Proper_plus : Proper (le ==> le ==> le) plus.
-Admitted.
-
+Proof. intros ? ? ? ? ? ?; apply plus_le_compat; auto. Qed.
 
 (*
 
