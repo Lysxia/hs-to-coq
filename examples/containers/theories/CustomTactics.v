@@ -59,14 +59,25 @@ Ltac splits :=
     end.
 
 Ltac decompose_conj H :=
+  hnf in H;
+  lazymatch type of H with
+  | (_ /\ _) =>
+    let H1 := fresh "H" in
+    let H2 := fresh "H" in
+    destruct H as [H1 H2];
+    tryif (try clear H; rename H2 into H)
+    then (decompose_conj H1; decompose_conj H)
+    else (decompose_conj H1; decompose_conj H2)
+  | _ => idtac
+  end.
+
+Ltac decompose_conj_ H :=
   repeat
-    (hnf in H;
     lazymatch type of H with
     | (_ /\ _) =>
       let H1 := fresh "H" in
       let H2 := fresh "H" in
       destruct H as [H1 H2];
-      tryif (try clear H; rename H2 into H)
-      then (decompose_conj H1; decompose_conj H)
-      else (decompose_conj H1; decompose_conj H2)
-    end).
+      decompose_conj_ H1; decompose_conj_ H2
+    | _ => idtac
+    end.

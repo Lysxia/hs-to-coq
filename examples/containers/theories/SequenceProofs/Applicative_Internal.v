@@ -15,75 +15,95 @@ Require Import SequenceProofs.ValidityFunction.
 
 Set Bullet Behavior "Strict Subproofs".
 
+Local Open Scope Z_scope.
+
+Ltac autos :=
+  cbn; fold_classes;
+  repeat
+    lazymatch goal with
+    | [ |- _ -> _ ] =>
+      let H := fresh "H" in
+      intros H; decompose_conj_ H
+    end;
+  splits;
+  repeat
+    lazymatch goal with
+    | [ H : FSizedValid ?f |- context [ size (fmap (f := Node) ?f _) ] ] =>
+      rewrite (size_fmap__Node f H)
+    | [ H : FMultSizedValid ?i ?f |- context [ size (fmap (f := Digit) ?f _) ] ] =>
+      rewrite (size_fmap__Digit_mult i f _ H)
+    | [ H : FMultSizedValid _ ?f |- context [ size (?f _) ] ] =>
+      rewrite (proj1 H)
+    end;
+  auto_valid;
+  try lia.
+
+(* By induction on [t] *)
+Ltac analyze t :=
+  try (generalize dependent t; intros t);
+  induction t;
+  autos.
+
+Ltac analyze__ gen :=
+  lazymatch goal with
+  | [ |- forall _, ?_G ] (* must not be dependent *) => intros ?; analyze__ gen
+  | [ |- forall (t : _), _ ] => intros t; gen; analyze t
+  | [ |- FMultSizedValid _ _ ] => split; analyze__ gen
+  | _ => idtac
+  end.
+
+Ltac analyze_ := analyze__ idtac.
+
 Theorem size_digit12ToDigit {A B} `{Sized A} `{Validity A} `{Sized B} `{Validity B}
     (f : A -> B) (d : Digit12 (Node A))
   : FSizedValid f ->
     valid d ->
     size (fmap (fmap f) (digit12ToDigit d)) = size d.
-Proof.
-  destruct d; cbn; fold_classes; intros; rewrite !size_fmap__Node; auto.
-Qed.
+Proof. analyze d. Qed.
 
 Theorem FSized_mapMulFT {A B} `{Sized A} `{Validity A} `{Sized B} `{Validity B}
     (i : Int) (f : A -> B)
   : FMultSizedValid i f ->
     forall t : FingerTree A, size (mapMulFT i f t) = i * size t.
-Proof.
-  intros Hf; destruct t; cbn.
-  - rewrite Z.mul_0_r; reflexivity.
-  - apply Hf.
-  - reflexivity.
-Qed.
+Proof. analyze t. Qed.
 
 Theorem FMultSizedValid_mapMulNode {A B} `{Sized A} `{Validity A} `{SizedB : Sized B} `{ValidityB : Validity B}
     (i : Int) (f : A -> B)
   : FMultSizedValid i f ->
     FMultSizedValid i (mapMulNode i f).
-Proof.
-  intros [Hsizef Hvalidf].
-  split; intros []; cbn; reflexivity + intros_valid.
-  all: split; auto; rewrite !Hsizef; cbn; try lia.
-Qed.
+Proof. analyze_. Qed.
 
 Theorem size_mapMulFT {A B} `{Sized A} `{Validity A} `{SizedB : Sized B} `{ValidityB : Validity B}
     (i : Int) (f : A -> B)
   : FMultSizedValid i f ->
     forall t : FingerTree A, size (mapMulFT i f t) = i * size t.
-Proof.
-  intros [Hf _] []; cbn; rewrite ?Hf; cbn; lia.
-Qed.
+Proof. analyze_. Qed.
 
 Theorem valid_mapMulFT {A B} `{Sized A} `{Validity A} `{SizedB : Sized B} `{ValidityB : Validity B}
     (i : Int) (f : A -> B)
   : FMultSizedValid i f ->
     forall t : FingerTree A, valid t -> valid (mapMulFT i f t).
 Proof.
-  intros Hf t; revert B SizedB ValidityB f Hf; induction t; intros B SizedB ValidityB f Hf; cbn.
-  - constructor.
-  - apply Hf.
-  - intros_valid.
-    auto_valid; eauto using (valid_FMultSizedValid i f).
-    { rewrite size_mapMulFT by auto using (FMultSizedValid_mapMulNode i f).
-      rewrite 2 (size_fmap__Digit_mult i) by auto.
-      subst i0; cbn; lia. }
-    apply (IHt _ _ _ _ _); auto using (FMultSizedValid_mapMulNode i f).
+  analyze__ ltac:(generalize dependent B).
+  - rewrite size_mapMulFT; [ lia | apply FMultSizedValid_mapMulNode; auto ].
+  - eapply IHt; [ apply FMultSizedValid_mapMulNode; auto | auto ].
 Qed.
 
 Theorem size_squashL {A} (d : Digit23 A) (ns : Digit12 (Node A))
   : size (squashL d ns) = size d + size ns.
-Proof. destruct ns; cbn; lia. Qed.
+Proof. analyze ns. Qed.
 
 Theorem size_squashR {A} (ns : Digit12 (Node A)) (d : Digit23 A)
   : size (squashR ns d) = size ns + size d.
-Proof. destruct ns; cbn; lia. Qed.
+Proof. analyze ns. Qed.
 
 Theorem valid_squashL {A} `{Sized A} `{Validity A} (d : Digit23 A) (ns : Digit12 (Node A))
   : valid d -> valid ns -> valid (squashL d ns).
-Proof. destruct ns; cbn; firstorder lia. Qed.
+Proof. analyze ns. Qed.
 
 Theorem valid_squashR {A} `{Sized A} `{Validity A} (ns : Digit12 (Node A)) (d : Digit23 A)
   : valid ns -> valid d -> valid (squashR ns d).
-Proof. destruct ns; cbn; firstorder lia. Qed.
+Proof. analyze ns. Qed.
 
 Lemma unfold_pullL {A} (s : Int) (m : FingerTree (Node A)) (d : Digit A)
   : pullL s m d
@@ -91,37 +111,24 @@ Lemma unfold_pullL {A} (s : Int) (m : FingerTree (Node A)) (d : Digit A)
     | ConsLTree pr m' => Deep s (nodeToDigit pr) m' d
     | EmptyLTree => digitToTree' s d
     end.
-Proof.
-  destruct m; reflexivity.
-Qed.
+Proof. destruct m; reflexivity. Qed.
 
 Lemma valid_digitToTree' {A} `{Sized A} `{Validity A} (s : Int) (d : Digit A)
   : size d = s -> valid d -> valid (digitToTree' s d).
-Proof.
-  destruct d; cbn; intros ?; intros_valid; auto_valid; lia.
-Qed.
+Proof. analyze d. Qed.
 
 Lemma size_digitToTree' {A} `{Sized A} (s : Int) (d : Digit A)
   : size d = s -> size (digitToTree' s d) = s.
-Proof.
-  destruct d; cbn; lia.
-Qed.
+Proof. analyze d. Qed.
 
 Theorem valid_viewLTree {A} `{Sized A} `{Validity A} (t : FingerTree A)
   : valid t -> valid (viewLTree t) /\ size (viewLTree t) = size t.
 Proof.
-  induction t as [ | | A s d ]; cbn; fold_classes.
-  - auto.
-  - split; auto; lia.
-  - intros V; decompose_conj V.
-    specialize (IHt _ _ H3).
-    revert H1 H2; destruct d; cbn; fold_classes; do 2 intros_valid; auto_valid; auto.
-    1,2: rewrite ?unfold_pullL; destruct (viewLTree t); cbn in *; revert H1 IHt;
-      fold_classes; do 2 intros_valid; auto_valid.
-    1: rewrite size_nodeToDigit by auto.
-    2: apply valid_digitToTree'; auto; lia.
-    3: rewrite size_digitToTree' by lia.
-    all: lia.
+  analyze t; specialize (IHt _ _ H3); revert IHt; analyze d.
+  all: rewrite unfold_pullL; generalize dependent (viewLTree t); intros []; autos.
+  - rewrite size_nodeToDigit; auto; lia.
+  - apply valid_digitToTree'; auto; lia.
+  - rewrite size_digitToTree'; auto; lia.
 Qed.
 
 Theorem valid_viewRTree {A} `{Sized A} `{Validity A} (t : FingerTree A)

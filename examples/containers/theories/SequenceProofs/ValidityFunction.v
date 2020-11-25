@@ -1,9 +1,13 @@
+From Coq Require Import ZArith.
+
 Require Import GHC.Base.
 Import GHC.Base.Notations.
 Import ListNotations.
 Require Import Data.Sequence.Internal.
 Require Import SequenceProofs.Sized.
 Require Import SequenceProofs.Validity.
+
+Local Open Scope Z_scope.
 
 Ltac fold_classes :=
   fold_sized;
@@ -13,7 +17,6 @@ Ltac fold_classes :=
   repeat (change (@Internal.Functor__Node_fmap) with (@fmap Node _));
   repeat (change (@Internal.Foldable__Digit_sum ?A) with (@Foldable.sum Digit _ A));
   repeat (change (Foldable.sum (fmap size ?d)) with (size d)).
-
 
 Section ValidityFunction.
 
@@ -167,7 +170,9 @@ Ltac auto_valid_ :=
   | [ |- FSizedValid (fmap (f := Digit) _) ] => apply FSizedValid_fmap__Digit; auto_valid_
   | [ |- FSizedValid (fmap (f := Node) _) ] => apply FSizedValid_fmap__Node; auto_valid_
   | [ |- FSizedValid ((_ GHC.Base.∘ _) _) ] => unfold op_z2218U__; auto_valid_
-  | [ H : FSizedValid ?f |- valid ?f ] => revert H; apply valid_FSizedValid
+  | [ H : FSizedValid ?f |- valid ?f ] => apply (valid_FSizedValid f H)
+  | [ H : FMultSizedValid ?i ?f |- valid ?f ] => apply (valid_FMultSizedValid i f H)
+  | [ H : FMultSizedValid ?i ?f |- valid (?f _) ] => apply (valid_FMultSizedValid i f H); auto_valid_
   | [ |- valid (digit12ToDigit _) ] => apply valid_digit12ToDigit; auto_valid_
   | [ |- valid (nodeToDigit _) ] => apply valid_nodeToDigit; auto_valid_
   | [ |- _ /\ _ ] => split; auto_valid_

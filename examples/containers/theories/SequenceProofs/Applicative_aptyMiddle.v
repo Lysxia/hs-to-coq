@@ -1,5 +1,5 @@
 From Coq Require Import
-  Lia Morphisms Program.Tactics.
+  Lia ZArith Morphisms Program.Tactics.
 
 Require Import GHC.Base.
 Import GHC.Base.Notations.
@@ -12,6 +12,8 @@ Require Import Data.Sequence.Internal.
 Require Import SequenceProofs.Validity.
 Require Import SequenceProofs.ValidityFunction.
 Require Import SequenceProofs.Applicative_Internal.
+
+Local Open Scope Z_scope.
 
 Definition valid_with_size {A} `{Sized A} `{Validity A} (n : Int) : A -> Prop :=
   fun a => valid a /\ size a = n.
@@ -140,7 +142,7 @@ Proof.
         rewrite size_mapMulFT; auto.
         subst; clear; cbn; lia.
     + match goal with
-      | [ H : valid (DeepTh _ _ _ _) |- _ ] => decompose_conj H
+      | [ H : valid__Thin (DeepTh _ _ _ _) |- _ ] => decompose_conj H
       end.
       change (Wf.Fix_sub _ _ _ _ _ _) with
         (aptyMiddle (fmap firstf) (fmap lastf) (fmap GHC.Base.∘ map23) ta
