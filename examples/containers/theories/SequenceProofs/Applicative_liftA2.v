@@ -41,10 +41,7 @@ Lemma FMultSizedValid_ElemToNode2 {A B C} `{Sized B} `{Validity B} `{Sized C} `{
 Proof.
   split; intros []; cbn; fold_classes.
   - subst s; cbn; clear; lia.
-  - intros _.
-    split.
-    + rewrite 2 size_fmap__Node; auto.
-    + split; apply valid_fmap__Node; auto.
+  - intros _. autos.
 Qed.
 
 Lemma FMultSizedValid_ElemToNode3 {A B C} `{Sized B} `{Validity B} `{Sized C} `{Validity C}
@@ -62,9 +59,7 @@ Lemma FMultSizedValid_ElemToNode3 {A B C} `{Sized B} `{Validity B} `{Sized C} `{
 Proof.
   split; intros []; cbn; fold_classes.
   * subst s; cbn; clear; lia.
-  * intros _.
-    split; [ | auto_valid ].
-    rewrite 3 size_fmap__Node; auto.
+  * intros _. auto_size.
 Qed.
 
 Section aptyMiddle.
@@ -94,20 +89,16 @@ Proof.
   + red; cbn.
     pose proof (FMultSizedValid_ElemToNode2 s map23 pr sf) as MMF.
     prove_assumptions_of MMF; try solve [ auto | subst; clear; cbn; lia ].
-    split.
-    * auto_valid.
-      apply valid_mapMulFT; auto.
-    * fold_classes. rewrite 2 size_fmap__Node; auto_valid.
-      rewrite size_mapMulFT; auto.
+    fold_classes; splits; auto_size.
+    * apply valid_mapMulFT; auto.
+    * rewrite !size_mapMulFT; auto.
       subst; clear; cbn; lia.
   + red; cbn.
     pose proof (FMultSizedValid_ElemToNode3 s map23 pr sf) as MMF.
     prove_assumptions_of MMF; auto.
-    split.
-    * auto_valid.
-      apply valid_mapMulFT; auto.
-    * fold_classes. rewrite !size_fmap__Node; auto_valid.
-      rewrite size_mapMulFT; auto.
+    fold_classes; splits; auto_size.
+    * apply valid_mapMulFT; auto.
+    * rewrite size_mapMulFT; auto.
       subst; clear; cbn; lia.
   + match goal with
     | [ H : valid__Thin (DeepTh _ _ _ _) |- _ ] => decompose_conj H

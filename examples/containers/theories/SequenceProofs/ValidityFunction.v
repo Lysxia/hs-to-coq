@@ -179,4 +179,12 @@ Ltac auto_valid_ :=
   | _ => auto with validity
   end.
 
+Ltac auto_size :=
+  repeat
+    lazymatch goal with
+    | [ |- context [ size (fmap (f := Node) ?f _) ] ] => rewrite (size_fmap__Node f); auto
+    | [ H : FMultSizedValid ?i ?f |- context [ size (fmap (f := Digit) ?f _) ] ] => rewrite (size_fmap__Digit_mult i f _ H)
+    | [ H : FMultSizedValid _ ?f |- context [ size (?f _) ] ] => rewrite (proj1 H)
+    end; auto_valid_.
+
 Ltac auto_valid := fold_classes; auto_valid_.

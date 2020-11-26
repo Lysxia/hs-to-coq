@@ -1,6 +1,10 @@
+From Coq Require Import ZArith.
+
 Require Import GHC.Base.
 Require Import Data.Sequence.Internal.
 Import GHC.Num.Notations.
+
+Local Open Scope Z_scope.
 
 Definition size__Digit12 {A} `{Sized A} (d : Digit12 A) : Int :=
   match d with

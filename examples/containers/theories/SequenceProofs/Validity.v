@@ -1,9 +1,13 @@
+From Coq Require Import ZArith.
+
 Require Import GHC.Base.
 Require Import Proofs.Data.Foldable.
 Import ListNotations.
 Require Import Data.Sequence.Internal.
 Require Import SequenceProofs.Sized.
 Require Import CustomTactics.
+
+Local Open Scope Z_scope.
 
 (* A precondition to most functions is that all size annotations are
    correct. *)

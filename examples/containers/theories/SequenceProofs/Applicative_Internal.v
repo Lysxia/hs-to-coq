@@ -36,16 +36,7 @@ Ltac autos :=
     end;
   auto_specialize;
   splits;
-  repeat
-    lazymatch goal with
-    | [ H : FSizedValid ?f |- context [ size (fmap (f := Node) ?f _) ] ] =>
-      rewrite (size_fmap__Node f H)
-    | [ H : FMultSizedValid ?i ?f |- context [ size (fmap (f := Digit) ?f _) ] ] =>
-      rewrite (size_fmap__Digit_mult i f _ H)
-    | [ H : FMultSizedValid _ ?f |- context [ size (?f _) ] ] =>
-      rewrite (proj1 H)
-    end;
-  auto_valid;
+  auto_size;
   try lia.
 
 (* By induction on [t] *)
