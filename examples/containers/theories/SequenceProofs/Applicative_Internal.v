@@ -17,14 +17,24 @@ Set Bullet Behavior "Strict Subproofs".
 
 Local Open Scope Z_scope.
 
+Ltac auto_specialize :=
+  repeat
+    lazymatch goal with
+    | [ H : Sized _ -> _    |- _ ] => specialize (H _)
+    | [ H : Validity _ -> _ |- _ ] => specialize (H _)
+    | [ H : valid ?X -> _, J : valid ?X |- _ ] => specialize (H J)
+    | [ H : _ /\ _ |- _ ] => decompose_conj H
+    end.
+
 Ltac autos :=
   cbn; fold_classes;
   repeat
     lazymatch goal with
-    | [ |- _ -> _ ] =>
-      let H := fresh "H" in
+    | [ |- forall (t : _), _ ] =>
+      let H := fresh t in
       intros H; decompose_conj_ H
     end;
+  auto_specialize;
   splits;
   repeat
     lazymatch goal with
@@ -124,17 +134,36 @@ Proof. analyze d. Qed.
 Theorem valid_viewLTree {A} `{Sized A} `{Validity A} (t : FingerTree A)
   : valid t -> valid (viewLTree t) /\ size (viewLTree t) = size t.
 Proof.
-  analyze t; specialize (IHt _ _ H3); revert IHt; analyze d.
+  analyze t;
+    match goal with
+    | [ |- context [ match ?x with _ => _ end ] ] => analyze x
+    end.
   all: rewrite unfold_pullL; generalize dependent (viewLTree t); intros []; autos.
   - rewrite size_nodeToDigit; auto; lia.
   - apply valid_digitToTree'; auto; lia.
   - rewrite size_digitToTree'; auto; lia.
 Qed.
 
+Lemma unfold_pullR {A} (s : Int) (d : Digit A) (m : FingerTree (Node A))
+  : pullR s d m
+  = match viewRTree m with
+    | SnocRTree m' sf => Deep s d m' (nodeToDigit sf)
+    | EmptyRTree => digitToTree' s d
+    end.
+Proof. destruct m; reflexivity. Qed.
+
 Theorem valid_viewRTree {A} `{Sized A} `{Validity A} (t : FingerTree A)
   : valid t -> valid (viewRTree t) /\ size (viewRTree t) = size t.
 Proof.
-Admitted.
+  analyze t;
+    match goal with
+    | [ |- context [ match ?x with _ => _ end ] ] => analyze x
+    end.
+  all: rewrite unfold_pullR; generalize dependent (viewRTree t); intros []; autos.
+  - rewrite size_nodeToDigit; auto; lia.
+  - apply valid_digitToTree'; auto; lia.
+  - rewrite size_digitToTree'; auto; lia.
+Qed.
 
 Theorem valid_viewl {A} (t : Seq A) : valid t -> valid (viewl t).
 Proof.
@@ -144,9 +173,13 @@ Proof.
   destruct (viewLTree t) as [ [x] | ]; [ destruct VVt | ]; auto.
 Qed.
 
-Theorem size_viewl {A} (t : Seq A) : size (viewl t) = size t.
+Theorem size_viewl {A} (t : Seq A) : valid t -> size (viewl t) = size t.
 Proof.
-Admitted.
+  destruct t as [t]; cbn.
+  intros Vt.
+  destruct (valid_viewLTree t Vt) as [VVt SVt].
+  destruct (viewLTree t) as [ [] | ]; [ destruct VVt | ]; auto.
+Qed.
 
 Theorem valid_viewr {A} (t : Seq A) : valid t -> valid (viewr t).
 Proof.
@@ -156,8 +189,13 @@ Proof.
   destruct (viewRTree t) as [ ? [x] | ]; [ destruct VVt | ]; auto.
 Qed.
 
-Theorem size_viewr {A} (t : Seq A) : size (viewr t) = size t.
-Admitted.
+Theorem size_viewr {A} (t : Seq A) : valid t -> size (viewr t) = size t.
+Proof.
+  destruct t as [t]; cbn.
+  intros Vt.
+  destruct (valid_viewRTree t Vt) as [VVt SVt].
+  destruct (viewRTree t) as [ ? [x] | ]; [ destruct VVt | ]; auto.
+Qed.
 
 Theorem valid_rigidify {A} (t : FingerTree (Elem A))
   : valid t -> valid (rigidify t).

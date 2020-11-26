@@ -90,4 +90,6 @@ Ltac fold_sized :=
   repeat (change (@Internal.Sized__Elem_size ?A) with (@size (Elem A) _));
   repeat (change (@size__Seq ?A) with (@size (Seq A) _));
   repeat (change (@Internal.length ?A) with (@size (Seq A) _));
-  repeat (change (@size__Thin ?A) with (@size (Thin A) _)).
+  repeat (change (@size__Thin ?A) with (@size (Thin A) _));
+  repeat (change (@size__ViewLTree ?A) with (@size (ViewLTree A) _));
+  repeat (change (@size__ViewRTree ?A) with (@size (ViewRTree A) _)).

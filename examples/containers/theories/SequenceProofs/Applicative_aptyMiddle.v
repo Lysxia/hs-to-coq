@@ -9,67 +9,8 @@ Import GHC.Num.Notations.
 Require Import CustomTactics.
 
 Require Import Data.Sequence.Internal.
-Require Import SequenceProofs.Validity.
-Require Import SequenceProofs.ValidityFunction.
-Require Import SequenceProofs.Applicative_Internal.
 
 Local Open Scope Z_scope.
-
-Definition valid_with_size {A} `{Sized A} `{Validity A} (n : Int) : A -> Prop :=
-  fun a => valid a /\ size a = n.
-
-Definition midsize {A} `{Sized A} (t : Rigid A) : Int :=
-  match t with
-  | Mk_Rigid _ _ m _ => size m
-  end.
-
-Lemma FMultSizedValid_ElemToNode2 {A B C} `{Sized B} `{Validity B} `{Sized C} `{Validity C}
-    (s : Int) (map23 : A -> B -> C)
-    (pr sf : Digit23 B)
-  : s = size pr + size sf ->
-    (forall a, FSizedValid (map23 a)) ->
-    valid pr -> valid sf ->
-    FMultSizedValid s
-      (fun pat : Elem A =>
-       (let
-        'Mk_Elem f as anonymous' := pat
-         return (anonymous' = pat -> Node (Digit23 C)) in
-         fun _ : Mk_Elem f = pat =>
-         Node2 (size pr + size sf)
-           (fmap (map23 f) pr) (fmap (map23 f) sf)) eq_refl).
-Proof.
-  split; intros []; cbn.
-  * subst s; cbn; clear; lia.
-  * intros _.
-    split.
-    { change _ with (size pr + size sf = size (fmap (map23 getElem) pr) + size (fmap (map23 getElem) sf)).
-      rewrite 2 size_fmap__Node; auto. }
-    { split; apply valid_fmap__Node; auto. }
-Qed.
-
-Lemma FMultSizedValid_ElemToNode3 {A B C} `{Sized B} `{Validity B} `{Sized C} `{Validity C}
-    (s : Int) (map23 : A -> B -> C)
-    (pr sf n : Digit23 B)
-  : s = size pr + size n + size sf ->
-    (forall a, FSizedValid (map23 a)) ->
-    valid pr -> valid sf -> valid n ->
-    FMultSizedValid s
-      (fun pat : Elem A =>
-       (let
-        'Mk_Elem f as anonymous' := pat
-         return (anonymous' = pat -> Node (Digit23 C)) in
-         fun _ : Mk_Elem f = pat =>
-         Node3 (size pr + size n + size sf)
-           (fmap (map23 f) pr) (fmap (map23 f) n) (fmap (map23 f) sf)) eq_refl).
-Proof.
-  split; intros []; cbn.
-  * subst s; cbn; clear; lia.
-  * intros _.
-    split; [ | auto_valid ].
-    change _ with (size pr + size n + size sf
-      = size (fmap (map23 getElem) pr) + size (fmap (map23 getElem) n) + size (fmap (map23 getElem) sf)).
-    rewrite 3 size_fmap__Node; auto.
-Qed.
 
 Local Notation ap8 P F x1 x2 x3 x4 x5 x6 x7 x8 :=
   (P x1 x2 x3 x4 x5 x6 x7 x8 (F x1 x2 x3 x4 x5 x6 x7 x8)).
@@ -95,72 +36,57 @@ Proof.
   - rewrite <- Eqn; intros; apply IHn, eq_add_S; auto.
 Qed.
 
-Section aptyMiddle.
-
-Context {B C A : Type}
-  `{SizedB : Sized B} `{ValidityB : Validity B} `{SizedC : Sized C} `{ValidityC : Validity C}
-  (firstf : B -> C) (lastf : B -> C) (map23 : A -> B -> C)
-  (ta : FingerTree (Elem A)) (tb : Rigid B)
-  (Hfirstf : FSizedValid firstf)
-  (Hlastf : FSizedValid lastf)
-  (Hmap23 : forall a, FSizedValid (map23 a))
-  (Hta : valid ta)
-  (Htb : valid tb).
-
-Theorem valid_with_size_aptyMiddle
-  : valid_with_size
-      (midsize tb + size tb + size ta * size tb)
-      (aptyMiddle firstf lastf map23 ta tb).
+Lemma mapMulFT_ext {a b} (i : Int) (f g : a -> b) (t : FingerTree a)
+  : (forall x, f x = g x) ->
+    mapMulFT i f t = mapMulFT i g t.
 Proof.
-  revert_until tb. revert SizedB ValidityB SizedC ValidityC.
-  apply aptyMiddle_ind; clear; intros B C A firstf lastf map23 ta tb IH; intros.
-  unfold aptyMiddle.
-  cbv beta iota delta [ aptyMiddle_func ].
+  revert b f g; induction t as [ | | a s dl m IH dr ]; intros * H; cbn.
+  - reflexivity.
+  - rewrite H; reflexivity.
+  - f_equal.
+    + destruct dl; cbn; f_equal; apply H.
+    + apply IH. intros []; cbn; f_equal; apply H.
+    + destruct dr; cbn; f_equal; apply H.
+Qed.
+
+Lemma unfold_aptyMiddle {b c a} (firstf lastf : (b -> c)) (map23 : a -> b -> c)
+    (fs : FingerTree (Elem a)) (tb : Rigid b)
+  : aptyMiddle firstf lastf map23 fs tb
+  = match tb with
+    | Mk_Rigid s pr (DeepTh sm prm mm sfm) sf =>
+      Deep (sm + (s * (size fs + #1)))
+        (fmap (fmap firstf) (digit12ToDigit prm))
+        (aptyMiddle (fmap firstf) (fmap lastf) (fmap GHC.Base.∘ map23) fs
+           (Mk_Rigid s (squashL pr prm) mm (squashR sfm sf)))
+        (fmap (fmap lastf) (digit12ToDigit sfm))
+    | Mk_Rigid s pr EmptyTh sf =>
+      let converted := node2 pr sf in
+      deep (One (fmap firstf sf))
+        (mapMulFT s (fun '(Mk_Elem f) => fmap (fmap (map23 f)) converted) fs)
+        (One (fmap lastf pr))
+    | Mk_Rigid s pr (SingleTh q) sf =>
+      let converted := node3 pr q sf in
+      deep (Two (fmap firstf q) (fmap firstf sf))
+        (mapMulFT s (fun '(Mk_Elem f) => fmap (fmap (map23 f)) converted) fs)
+        (Two (fmap lastf pr) (fmap lastf q))
+    end.
+Proof.
+  match goal with
+  | [ |- ?X = ?Y ] => pose (RHS := Y); change Y with RHS
+  end.
+  cbv beta iota delta [ aptyMiddle aptyMiddle_func ].
   rewrite Wf.Fix_eq.
   { cbn beta iota delta [projT1 projT2].
     match goal with
-    | [ |- valid_with_size _ ?T ] => let U := eval hnf in T in change T with U
+    | [ |- ?X = _ ] => let U := eval hnf in X in change X with U
     end.
-    destruct tb as [ s pr m sf ]; decompose_conj Htb.
+    destruct tb as [ s pr m sf ].
     destruct m as [ | | sm prm mm sfm ].
-    + red; cbn.
-      pose proof (FMultSizedValid_ElemToNode2 s map23 pr sf) as MMF.
-      prove_assumptions_of MMF; try solve [ auto | subst; clear; cbn; lia ].
-      split.
-      * auto_valid.
-        apply valid_mapMulFT; auto.
-      * fold_classes. rewrite 2 size_fmap__Node; auto_valid.
-        rewrite size_mapMulFT; auto.
-        subst; clear; cbn; lia.
-    + red; cbn.
-      pose proof (FMultSizedValid_ElemToNode3 s map23 pr sf) as MMF.
-      prove_assumptions_of MMF; auto.
-      split.
-      * auto_valid.
-        apply valid_mapMulFT; auto.
-      * fold_classes. rewrite !size_fmap__Node; auto_valid.
-        rewrite size_mapMulFT; auto.
-        subst; clear; cbn; lia.
-    + match goal with
-      | [ H : valid__Thin (DeepTh _ _ _ _) |- _ ] => decompose_conj H
-      end.
-      change (Wf.Fix_sub _ _ _ _ _ _) with
-        (aptyMiddle (fmap firstf) (fmap lastf) (fmap GHC.Base.∘ map23) ta
-           (Mk_Rigid s (squashL pr prm) mm (squashR sfm sf))).
-      remember @aptyMiddle as aptyMiddle_ eqn:EAM; clear EAM.
-      specialize (IH _ _ _ (fmap firstf) (fmap lastf) (fmap GHC.Base.∘ map23) ta (Mk_Rigid s (squashL pr prm) mm (squashR sfm sf)) eq_refl _ _ _ _).
-      prove_assumptions_of IH; auto_valid.
-        { cbn. fold_classes.
-          split.
-          { rewrite size_squashL, size_squashR.
-            subst; cbn; lia. }
-          { auto using @valid_squashL, @valid_squashR. } }
-      destruct IH as [ IHvalid IHsize ].
-      split.
-      * cbn. auto_valid.
-        { rewrite IHsize. cbn. fold_classes. rewrite 2 size_digit12ToDigit by auto.
-          subst s sm; cbn; lia.  }
-      * cbn. lia.
+    - subst RHS; cbn. f_equal. apply mapMulFT_ext.
+      intros []; reflexivity.
+    - subst RHS; cbn. f_equal. apply mapMulFT_ext.
+      intros []; reflexivity.
+    - subst RHS. reflexivity.
   }
   { intros x f g Efg. destruct x as (? & ? & ? & ? & ? & ? & ? & ?).
     cbn beta iota delta [projT1 projT2].
@@ -176,13 +102,3 @@ Proof.
     apply Efg.
   }
 Time Qed.
-
-Lemma size_aptyMiddle
-  : size (aptyMiddle firstf lastf map23 ta tb) =
-    midsize tb + size tb + size ta * size tb.
-Proof. apply valid_with_size_aptyMiddle. Qed.
-
-Lemma valid_aptyMiddle : valid (aptyMiddle firstf lastf map23 ta tb).
-Proof. apply valid_with_size_aptyMiddle. Qed.
-
-End aptyMiddle.
