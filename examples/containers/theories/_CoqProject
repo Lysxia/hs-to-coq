@@ -3,6 +3,7 @@
 -R ../../../base ""
 -Q ../../../base-thy  Proofs
 -Q ../../containers/lib ""
+./SequenceProofs/EqProp.v
 ./SequenceProofs/ToList.v
 ./SequenceProofs/Sized.v
 ./SequenceProofs/Validity.v
@@ -12,6 +13,7 @@
 ./SequenceProofs/Applicative_aptyMiddle.v
 ./SequenceProofs/Applicative_liftA2.v
 ./SequenceProofs/Functor.v
+./SequenceProofs/Foldable.v
 CustomTactics.v
 OrdTactic.v
 OrdTheories.v

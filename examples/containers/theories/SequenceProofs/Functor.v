@@ -63,7 +63,7 @@ Proof.
   intros []; reflexivity.
 Qed.
 
-Lemma toList_fmap_Seq {A B} (f : A -> B) (s : Seq A)
+Lemma toList_fmap__Seq {A B} (f : A -> B) (s : Seq A)
   : toList (fmap f s) = fmap f (toList s).
 Proof.
   destruct s; cbn.
