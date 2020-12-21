@@ -12,6 +12,7 @@
 ./SequenceProofs/Applicative_Internal.v
 ./SequenceProofs/Applicative_aptyMiddle.v
 ./SequenceProofs/Applicative_liftA2.v
+./SequenceProofs/Applicative_ToList.v
 ./SequenceProofs/Functor.v
 ./SequenceProofs/Foldable.v
 CustomTactics.v

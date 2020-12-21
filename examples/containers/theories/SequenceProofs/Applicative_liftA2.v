@@ -10,10 +10,11 @@ Require Import CustomTactics.
 Import ListNotations.
 
 Require Import Data.Sequence.Internal.
-Require Import SequenceProofs.Validity.
-Require Import SequenceProofs.ValidityFunction.
-Require Import SequenceProofs.Applicative_Internal.
-Require Import SequenceProofs.Applicative_aptyMiddle.
+From SequenceProofs Require Import
+  Validity
+  ValidityFunction
+  Applicative_Internal
+  Applicative_aptyMiddle.
 
 Local Open Scope Z_scope.
 

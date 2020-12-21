@@ -59,5 +59,39 @@ Fixpoint toList_Thin {T A} `{ToList T A} (t : Thin A) : list T :=
 
 Instance ToList__Thin {T A} `{ToList T A} : ToList T (Thin A) := toList_Thin.
 
+Definition toList_ViewL {A} (t : ViewL A) : list A :=
+  match t with
+  | EmptyL => nil
+  | x :< xs => x :: toList xs
+  end.
+
+Instance ToList__ViewL {A} : ToList A (ViewL A) := toList_ViewL.
+
+Definition toList_ViewR {A} (t : ViewR A) : list A :=
+  match t with
+  | EmptyR => nil
+  | xs :> x => toList xs ++ [x]
+  end.
+
+Instance ToList__ViewR {A} : ToList A (ViewR A) := toList_ViewR.
+
+Definition toList_Rigid {T A} `{ToList T A} (r : Rigid A) : list T :=
+  match r with
+  | Mk_Rigid _ pr t sf => toList pr ++ toList t ++ toList sf
+  end.
+
+Instance ToList__Rigid {T A} `{ToList T A} : ToList T (Rigid A) := toList_Rigid.
+
+Definition toList_Rigidified {T A} `{ToList T A} (t : Rigidified A) : list T :=
+  match t with
+  | RigidEmpty => nil
+  | RigidOne x => toList x
+  | RigidTwo x y => toList x ++ toList y
+  | RigidThree x y z => toList x ++ toList y ++ toList z
+  | RigidFull r => toList r
+  end.
+
+Instance ToList__Rigidified {T A} `{ToList T A} : ToList T (Rigidified A) := toList_Rigidified.
+
 Ltac fold_toList :=
   repeat (change (@toList__FingerTree ?T ?A _) with (@toList T (FingerTree A) _)).
