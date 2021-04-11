@@ -128,7 +128,8 @@ library
                      , transformers
                      , mtl
                      , array
-                     , lens
+                     , assoc
+                     , lens >= 5
                      , containers
                      , syb
                      , text

@@ -10,7 +10,8 @@ import qualified Data.Set as S
 import Data.Foldable
 
 -- For instances
-import Control.Lens
+import Data.Bifunctor
+import Data.Bifunctor.Swap
 import Data.Bifoldable
 import Data.Bitraversable
 import Control.Applicative
@@ -107,11 +108,9 @@ instance Bitraversable ErrOrVars where
   bitraverse l r (ErrOrVars e) = ErrOrVars <$> bitraverse l r e
   {-# INLINE bitraverse #-}
 
-instance Swapped ErrOrVars where
-  swapped = iso swap swap
-    where swap (ErrOrVars e) = ErrOrVars (either Right Left e)
-          {-# INLINE swap #-}
-  {-# INLINE swapped #-}
+instance Swap ErrOrVars where
+  swap (ErrOrVars e) = ErrOrVars (either Right Left e)
+  {-# INLINE swap #-}
 
 instance HasBV i a => HasBV i (ErrOrVars e a) where
   bvOf = either (const $ BVs S.empty S.empty) bvOf . getErrOrVars
